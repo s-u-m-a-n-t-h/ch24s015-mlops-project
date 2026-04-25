@@ -20,18 +20,18 @@ It is loosely coupled from the UI, communicating solely via HTTP requests.
 * Experiment Tracking (MLflow): Interlaced with Airflow to log hyperparameters, metrics (Sharpe Ratio), and artifacts.
 
  C. Monitoring & Maintenance (The Feedback Loop)
-* Instrumentation (Prometheus): Scrapes metrics from the Backend and Airflow to monitor inference latency and system health[cite: 71, 72].
-* Visualization (Grafana): Provides Near Real-Time (NRT) dashboards for data drift and performance tracking[cite: 74, 162].
-* Automated Retraining: Uses Alertmanager to trigger a webhook back to Airflow, initiating a retraining DAG if data drift is detected[cite: 161, 164, 165].
+* Instrumentation (Prometheus): Scrapes metrics from the Backend and Airflow to monitor inference latency and system health.
+* Visualization (Grafana): Provides Near Real-Time (NRT) dashboards for data drift and performance tracking.
+* Automated Retraining: Uses Alertmanager to trigger a webhook back to Airflow, initiating a retraining DAG if data drift is detected.
 
 
 
  3. Data & Communication Flow
-1.  Ingestion: Airflow pulls market data $\rightarrow$ Validates schema $\rightarrow$ Versions with DVC[cite: 118, 122].
-2.  Training: Airflow triggers XGBoost training $\rightarrow$ Logs to MLflow $\rightarrow$ Registers the best model[cite: 137, 142, 177].
-3.  Deployment: GitHub Actions builds a Docker image with the latest model $\rightarrow$ Deploys to the Backend[cite: 106, 152].
-4.  Inference: Frontend requests weights $\rightarrow$ Backend fetches model from MLflow Registry $\rightarrow$ Returns allocation[cite: 76, 153].
-5.  Monitoring: Prometheus detects drift $\rightarrow$ Alertmanager signals Airflow $\rightarrow$ Pipeline restarts[cite: 160, 161].
+1.  Ingestion: Airflow pulls market data $\rightarrow$ Validates schema $\rightarrow$ Versions with DVC.
+2.  Training: Airflow triggers XGBoost training $\rightarrow$ Logs to MLflow $\rightarrow$ Registers the best model.
+3.  Deployment: GitHub Actions builds a Docker image with the latest model $\rightarrow$ Deploys to the Backend.
+4.  Inference: Frontend requests weights $\rightarrow$ Backend fetches model from MLflow Registry $\rightarrow$ Returns allocation.
+5.  Monitoring: Prometheus detects drift $\rightarrow$ Alertmanager signals Airflow $\rightarrow$ Pipeline restarts.
 
 
 
