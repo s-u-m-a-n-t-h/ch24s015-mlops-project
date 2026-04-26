@@ -10,3 +10,4 @@ prometheus-client
 requests
 pydantic
 python-dotenv
+dvc
