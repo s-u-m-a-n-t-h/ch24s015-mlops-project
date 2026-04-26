@@ -29,6 +29,47 @@ services:
     networks:
       - app-network
 
+  airflow-db:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    networks:
+      - app-network
+
+  airflow-webserver:
+    image: apache/airflow:2.7.1-python3.10
+    command: webserver
+    depends_on:
+      - airflow-db
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    volumes:
+      - ./src/pipeline:/opt/airflow/dags
+      - ./data:/opt/airflow/data
+      - ./requirements.txt:/opt/airflow/requirements.txt
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+  airflow-scheduler:
+    image: apache/airflow:2.7.1-python3.10
+    command: scheduler
+    depends_on:
+      - airflow-db
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    volumes:
+      - ./src/pipeline:/opt/airflow/dags
+      - ./data:/opt/airflow/data
+      - ./requirements.txt:/opt/airflow/requirements.txt
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
