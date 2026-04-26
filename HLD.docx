@@ -1,0 +1,41 @@
+High-Level Design: Automated Portfolio Allocation System
+
+1. Architectural Overview
+The system is designed as a microservices-based application orchestrated via Docker Compose in a Swarm environment.
+It strictly separates user-facing interaction (Online Stage) from the automated machine learning lifecycle (Offline Stage).
+
+2. System Components & Design Rationale
+
+ A. Online Stage (User Interaction & Inference)
+* Reverse Proxy (Security): Acts as the single entry point, providing SSL/TLS termination to encrypt data in transit.
+* Frontend (Streamlit): An independent UI block for non-technical users to view portfolio recommendations.
+It features a dedicated Pipeline Visualization screen to display system health and DAG status.
+* Backend (FastAPI): A RESTful API that handles business logic and serves model predictions. 
+It is loosely coupled from the UI, communicating solely via HTTP requests.
+* Database (PostgreSQL/SQLite): Stores application state, user inputs, and historical portfolio snapshots.
+
+ B. Offline Stage (ML Lifecycle & Automation)
+* Orchestrator (Apache Airflow): Automates the end-to-end pipeline, including data ingestion (`yfinance`), preprocessing, and feature engineering.
+* Data & Model Versioning (DVC): Tracks data artifacts and model weights to ensure 100% reproducibility across experiments.
+* Experiment Tracking (MLflow): Interlaced with Airflow to log hyperparameters, metrics (Sharpe Ratio), and artifacts.
+
+ C. Monitoring & Maintenance (The Feedback Loop)
+* Instrumentation (Prometheus): Scrapes metrics from the Backend and Airflow to monitor inference latency and system health.
+* Visualization (Grafana): Provides Near Real-Time (NRT) dashboards for data drift and performance tracking.
+* Automated Retraining: Uses Alertmanager to trigger a webhook back to Airflow, initiating a retraining DAG if data drift is detected.
+
+
+
+ 3. Data & Communication Flow
+1.  Ingestion: Airflow pulls market data $\rightarrow$ Validates schema $\rightarrow$ Versions with DVC.
+2.  Training: Airflow triggers XGBoost training $\rightarrow$ Logs to MLflow $\rightarrow$ Registers the best model.
+3.  Deployment: GitHub Actions builds a Docker image with the latest model $\rightarrow$ Deploys to the Backend.
+4.  Inference: Frontend requests weights $\rightarrow$ Backend fetches model from MLflow Registry $\rightarrow$ Returns allocation.
+5.  Monitoring: Prometheus detects drift $\rightarrow$ Alertmanager signals Airflow $\rightarrow$ Pipeline restarts.
+
+
+
+ 4. Design Principles Adhered To
+* Loose Coupling: Frontend and Backend are independent software blocks.
+* Environment Parity: Docker ensures identical dev/test/prod environments.
+* Automation: All stages from ingestion to monitoring are automated.
