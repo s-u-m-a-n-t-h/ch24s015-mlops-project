@@ -22,10 +22,12 @@ with DAG(
 
     fetch_data = BashOperator(
         task_id='fetch_market_data',
-        bash_command='python3 /opt/airflow/dags/ingest.py',
+        bash_command='python3 /opt/airflow/src/pipeline/ingest.py',
     )
 
-    # Note: DVC tracking task will be added here once we've finalized
-    # how to pass the host's DVC credentials/config into the container.
+    dvc_add = BashOperator(
+        task_id='dvc_track_data',
+        bash_command='dvc add /opt/airflow/data/raw',
+    )
     
-    fetch_data
+    fetch_data >> dvc_add
