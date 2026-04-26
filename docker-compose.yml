@@ -46,10 +46,10 @@ services:
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__DAGS_FOLDER=/opt/airflow/src/pipeline
+      - _PIP_ADDITIONAL_DEPENDENCIES=dvc[http]
     volumes:
-      - ./src/pipeline:/opt/airflow/dags
-      - ./data:/opt/airflow/data
-      - ./requirements.txt:/opt/airflow/requirements.txt
+      - .:/opt/airflow
     ports:
       - "8080:8080"
     networks:
@@ -63,10 +63,10 @@ services:
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__DAGS_FOLDER=/opt/airflow/src/pipeline
+      - _PIP_ADDITIONAL_DEPENDENCIES=dvc[http]
     volumes:
-      - ./src/pipeline:/opt/airflow/dags
-      - ./data:/opt/airflow/data
-      - ./requirements.txt:/opt/airflow/requirements.txt
+      - .:/opt/airflow
     networks:
       - app-network
 
