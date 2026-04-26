@@ -67,6 +67,7 @@ services:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - _PIP_ADDITIONAL_DEPENDENCIES=dvc[http]
+      - AIRFLOW_UID=0
     volumes:
       - ./src/pipeline:/opt/airflow/dags
       - ./data:/opt/airflow/data
