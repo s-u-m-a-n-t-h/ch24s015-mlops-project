@@ -22,7 +22,7 @@ with DAG(
 
     fetch_data = BashOperator(
         task_id='fetch_market_data',
-        bash_command='python3 /opt/airflow/src/pipeline/ingest.py',
+        bash_command='python3 /opt/airflow/dags/ingest.py',
     )
 
     dvc_add = BashOperator(
