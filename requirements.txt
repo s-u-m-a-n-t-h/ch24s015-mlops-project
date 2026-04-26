@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+streamlit
+xgboost
+scikit-learn
+pandas
+yfinance
+mlflow
+prometheus-client
+requests
+pydantic
+python-dotenv
