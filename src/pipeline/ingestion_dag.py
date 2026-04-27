@@ -58,6 +58,13 @@ with DAG(
         bash_command='dvc add data/features',
         cwd='/opt/airflow'
     )
+
+    # 4. Model Training
+    model_training = BashOperator(
+        task_id='model_training',
+        bash_command='python3 /opt/airflow/dags/train.py',
+        cwd='/opt/airflow'
+    )
     
     # Dependency Chain with intermediate tracking
-    fetch_data >> track_raw >> validate_data >> track_validated >> engineer_features >> track_features
+    fetch_data >> track_raw >> validate_data >> track_validated >> engineer_features >> track_features >> model_training

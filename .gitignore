@@ -6,4 +6,6 @@ __pycache__/
 *.docx
 gh
 extract_docx.py
-data/raw/
+data/
+mlruns/
+mlflow.db

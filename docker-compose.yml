@@ -17,6 +17,7 @@ services:
       dockerfile: src/api/Dockerfile
     environment:
       - APP_NAME=PortfolioBackend
+      - MLFLOW_TRACKING_URI=http://mlflow-server:5000
     networks:
       - app-network
 
@@ -65,6 +66,7 @@ services:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db/airflow
       - AIRFLOW__WEBSERVER__SECRET_KEY=4620d44093f45d1d646a7824c160a0a5
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - MLFLOW_TRACKING_URI=http://mlflow-server:5000
     volumes:
       - ./src/pipeline:/opt/airflow/dags
       - ./data:/opt/airflow/data
@@ -89,12 +91,30 @@ services:
       - AIRFLOW__WEBSERVER__SECRET_KEY=4620d44093f45d1d646a7824c160a0a5
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW_UID=0
+      - MLFLOW_TRACKING_URI=http://mlflow-server:5000
     volumes:
       - ./src/pipeline:/opt/airflow/dags
       - ./data:/opt/airflow/data
       - ./.dvc:/opt/airflow/.dvc
       - ./.git:/opt/airflow/.git
       - ./.dvcignore:/opt/airflow/.dvcignore
+    networks:
+      - app-network
+
+  mlflow-server:
+    image: ghcr.io/mlflow/mlflow:v2.11.3
+    ports:
+      - "5000:5000"
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=sqlite:////opt/mlflow/mlflow.db
+      - MLFLOW_ARTIFACT_ROOT=/opt/mlflow/artifacts
+    volumes:
+      - ./mlruns:/opt/mlflow
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:////opt/mlflow/mlflow.db
+      --default-artifact-root /opt/mlflow/artifacts
+      --host 0.0.0.0
     networks:
       - app-network
 
