@@ -38,6 +38,11 @@ services:
       - POSTGRES_DB=airflow
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - app-network
 
@@ -49,7 +54,8 @@ services:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db/airflow
       - AIRFLOW__WEBSERVER__SECRET_KEY=4620d44093f45d1d646a7824c160a0a5
     depends_on:
-      - airflow-db
+      airflow-db:
+        condition: service_healthy
     networks:
       - app-network
     command: >
@@ -69,6 +75,8 @@ services:
       - AIRFLOW__WEBSERVER__SECRET_KEY=4620d44093f45d1d646a7824c160a0a5
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - MLFLOW_TRACKING_URI=http://mlflow-server:5000
+      - AIRFLOW__WEBSERVER__WORKERS=2
+      - AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT=300
     volumes:
       - ./src/pipeline:/opt/airflow/dags
       - ./data:/opt/airflow/data
@@ -94,6 +102,7 @@ services:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW_UID=0
       - MLFLOW_TRACKING_URI=http://mlflow-server:5000
+      - AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL=30
     volumes:
       - ./src/pipeline:/opt/airflow/dags
       - ./data:/opt/airflow/data
