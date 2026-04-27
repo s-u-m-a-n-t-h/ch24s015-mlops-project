@@ -9,7 +9,7 @@ default_args = {
     'email_on_failure': False,
     'email_on_retry': False,
     'retries': 1,
-    'retry_delay': timedelta(minutes=5),
+    'retry_delay': timedelta(seconds=10),
 }
 
 with DAG(
@@ -23,11 +23,13 @@ with DAG(
     fetch_data = BashOperator(
         task_id='fetch_market_data',
         bash_command='python3 /opt/airflow/dags/ingest.py',
+        cwd='/opt/airflow'
     )
 
     dvc_add = BashOperator(
         task_id='dvc_track_data',
         bash_command='dvc add /opt/airflow/data/raw',
+        cwd='/opt/airflow'
     )
     
     fetch_data >> dvc_add

@@ -7,7 +7,7 @@ def fetch_market_data(tickers, period="2y", interval="1d"):
     """
     Downloads historical data for a list of tickers.
     """
-    data_dir = "data/raw"
+    data_dir = "/opt/airflow/data/raw"
     os.makedirs(data_dir, exist_ok=True)
     
     metadata = []
