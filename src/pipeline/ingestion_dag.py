@@ -15,21 +15,49 @@ default_args = {
 with DAG(
     'market_data_ingestion',
     default_args=default_args,
-    description='Fetches market data from yfinance and versions with DVC',
+    description='Fetches, validates, and engineers features with granular DVC tracking',
     schedule_interval=timedelta(days=1),
     catchup=False,
 ) as dag:
 
+    # 1. Ingestion
     fetch_data = BashOperator(
         task_id='fetch_market_data',
         bash_command='python3 /opt/airflow/dags/ingest.py',
         cwd='/opt/airflow'
     )
 
-    dvc_add = BashOperator(
-        task_id='dvc_track_data',
-        bash_command='dvc add /opt/airflow/data/raw',
+    track_raw = BashOperator(
+        task_id='track_raw_data',
+        bash_command='dvc add data/raw',
+        cwd='/opt/airflow'
+    )
+
+    # 2. Validation
+    validate_data = BashOperator(
+        task_id='validate_market_data',
+        bash_command='python3 /opt/airflow/dags/validate.py',
+        cwd='/opt/airflow'
+    )
+
+    track_validated = BashOperator(
+        task_id='track_validated_data',
+        bash_command='dvc add data/raw',
+        cwd='/opt/airflow'
+    )
+
+    # 3. Feature Engineering
+    engineer_features = BashOperator(
+        task_id='feature_engineering',
+        bash_command='python3 /opt/airflow/dags/features.py',
+        cwd='/opt/airflow'
+    )
+
+    track_features = BashOperator(
+        task_id='track_features_data',
+        bash_command='dvc add data/features',
         cwd='/opt/airflow'
     )
     
-    fetch_data >> dvc_add
+    # Dependency Chain with intermediate tracking
+    fetch_data >> track_raw >> validate_data >> track_validated >> engineer_features >> track_features
