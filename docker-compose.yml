@@ -46,6 +46,7 @@ services:
       dockerfile: src/pipeline/Dockerfile.airflow
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db/airflow
+      - AIRFLOW__WEBSERVER__SECRET_KEY=4620d44093f45d1d646a7824c160a0a5
     depends_on:
       - airflow-db
     networks:
@@ -64,6 +65,7 @@ services:
         condition: service_completed_successfully
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db/airflow
+      - AIRFLOW__WEBSERVER__SECRET_KEY=4620d44093f45d1d646a7824c160a0a5
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
     volumes:
       - ./src/pipeline:/opt/airflow/dags
@@ -86,6 +88,7 @@ services:
         condition: service_completed_successfully
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db/airflow
+      - AIRFLOW__WEBSERVER__SECRET_KEY=4620d44093f45d1d646a7824c160a0a5
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW_UID=0
     volumes:
