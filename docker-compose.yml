@@ -77,6 +77,7 @@ services:
       - MLFLOW_TRACKING_URI=http://mlflow-server:5000
       - AIRFLOW__WEBSERVER__WORKERS=2
       - AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT=300
+      - AIRFLOW__WEBSERVER__WEB_SERVER_MASTER_TIMEOUT=300
     volumes:
       - ./src/pipeline:/opt/airflow/dags
       - ./data:/opt/airflow/data
