@@ -9,3 +9,4 @@ extract_docx.py
 data/
 mlruns/
 mlflow.db
+postgres_data/
