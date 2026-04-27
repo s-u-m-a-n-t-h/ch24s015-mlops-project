@@ -5,4 +5,9 @@ RUN apt-get update && apt-get install -y git && apt-get clean
 
 USER airflow
 RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir dvc[http] yfinance pandas mlflow scikit-learn
+
+# Stable dependencies (heavy, rarely change)
+RUN pip install --no-cache-dir pandas yfinance dvc[http]
+
+# ML dependencies (likely to change during experimentation)
+RUN pip install --no-cache-dir "numpy<2.0" mlflow scikit-learn
