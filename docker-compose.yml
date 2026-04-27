@@ -114,7 +114,7 @@ services:
       - app-network
 
   mlflow-server:
-    image: ghcr.io/mlflow/mlflow:v2.11.3
+    image: ghcr.io/mlflow/mlflow:v2.20.1
     ports:
       - "5000:5000"
     environment:
