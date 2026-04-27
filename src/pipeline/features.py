@@ -32,6 +32,9 @@ def engineer_features(input_dir, output_dir):
         print(f"Engineering features for {file} (Pure Pandas)...")
         df = pd.read_csv(os.path.join(input_dir, file))
         
+        # Ensure numeric types for calculation
+        df['Close'] = pd.to_numeric(df['Close'], errors='coerce')
+        
         if 'Date' in df.columns:
             df['Date'] = pd.to_datetime(df['Date'])
             df.sort_values('Date', inplace=True)

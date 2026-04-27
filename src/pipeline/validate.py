@@ -23,12 +23,12 @@ def validate_data(input_dir):
             df = pd.read_csv(file_path)
             
             # 1. Basic Schema Check
-            required_columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
-            # Note: yfinance sometimes has a slightly different header structure
-            # We'll check if the essential ones exist
-            if not all(col in df.columns for col in ['Close']):
-                 # If Multi-index or different format, try to fix or alert
-                 print(f"Warning: {file} might have non-standard columns: {df.columns.tolist()}")
+            required_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+            for col in required_columns:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+                else:
+                    print(f"Warning: Missing column {col} in {file}")
 
             # 2. Check for empty files
             if df.empty:

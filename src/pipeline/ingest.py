@@ -17,6 +17,10 @@ def fetch_market_data(tickers, period="2y", interval="1d"):
         df = yf.download(ticker, period=period, interval=interval)
         
         if not df.empty:
+            # Flatten multi-index columns if they exist
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+            
             file_path = os.path.join(data_dir, f"{ticker}.csv")
             df.to_csv(file_path)
             metadata.append({
