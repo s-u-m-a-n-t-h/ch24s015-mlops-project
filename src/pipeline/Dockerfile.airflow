@@ -10,4 +10,6 @@ RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir pandas yfinance dvc[http]
 
 # ML dependencies (likely to change during experimentation)
-RUN pip install --no-cache-dir --upgrade "numpy<2.0" mlflow scikit-learn "email-validator>=2.0.0"
+RUN pip install --user --upgrade --no-cache-dir "numpy<2.0"
+RUN pip install --user --upgrade --no-cache-dir "email-validator>=2.0.0"
+RUN pip install --user --upgrade --no-cache-dir mlflow scikit-learn
