@@ -155,33 +155,49 @@ def calculate_indicators(df: pd.DataFrame):
 
 @app.post("/history")
 async def get_history(input_data: HistoryInput):
-    """Returns historical data and indicators for visualization."""
+    """Returns historical data and indicators for visualization with strict JSON safety."""
     try:
-        # Download data one ticker at a time to ensure consistent format
         result = {}
-        for ticker in input_data.tickers:
+        for ticker_raw in input_data.tickers:
+            ticker = str(ticker_raw)
+            # Download
             df = yf.download(ticker, period=input_data.period, 
                              interval=input_data.interval, auto_adjust=True)
             
             if df.empty:
                 continue
 
-            df = calculate_indicators(df)
-            df = df.reset_index()
+            # 1. Flatten MultiIndex columns if yfinance returned them
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
             
-            # Ensure Date is string and handle NaNs
+            # 2. Calculate indicators
+            df = calculate_indicators(df)
+            
+            # 3. Final Sanitization
+            df = df.reset_index()
+            # Convert Date to ISO string
             df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
+            # Force all numbers to standard float and handle NaNs/Infs
             df = df.replace([np.inf, -np.inf], np.nan).fillna(0)
             
-            # Use ticker string as key
-            result[str(ticker)] = df.to_dict(orient="records")
+            # 4. Build clean records
+            records = []
+            for _, row in df.iterrows():
+                # Convert row to dict and force keys to strings
+                record = {str(k): v for k, v in row.to_dict().items()}
+                records.append(record)
+            
+            result[ticker] = records
         
         if not result:
             raise HTTPException(status_code=404, detail="No data found for given tickers")
             
         return result
     except Exception as e:
+        import traceback
         print(f"Error in /history: {e}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- Portfolio Optimization Logic ---
