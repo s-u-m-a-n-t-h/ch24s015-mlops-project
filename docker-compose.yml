@@ -81,6 +81,7 @@ services:
     volumes:
       - ./src/pipeline:/opt/airflow/dags
       - ./data:/opt/airflow/data
+      - ./mlruns:/opt/mlflow
       - ./.dvc:/opt/airflow/.dvc
       - ./.git:/opt/airflow/.git
       - ./.dvcignore:/opt/airflow/.dvcignore
@@ -107,6 +108,7 @@ services:
     volumes:
       - ./src/pipeline:/opt/airflow/dags
       - ./data:/opt/airflow/data
+      - ./mlruns:/opt/mlflow
       - ./.dvc:/opt/airflow/.dvc
       - ./.git:/opt/airflow/.git
       - ./.dvcignore:/opt/airflow/.dvcignore
