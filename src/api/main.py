@@ -157,38 +157,28 @@ def calculate_indicators(df: pd.DataFrame):
 async def get_history(input_data: HistoryInput):
     """Returns historical data and indicators for visualization."""
     try:
-        data = yf.download(input_data.tickers, period=input_data.period, 
-                           interval=input_data.interval, auto_adjust=True)
-        
-        if data.empty:
-            raise HTTPException(status_code=404, detail="No data found for given tickers")
-
+        # Download data one ticker at a time to ensure consistent format
         result = {}
-        
-        # Handle single vs multi-ticker download formats
-        if len(input_data.tickers) == 1:
-            ticker = input_data.tickers[0]
-            df = data.copy()
+        for ticker in input_data.tickers:
+            df = yf.download(ticker, period=input_data.period, 
+                             interval=input_data.interval, auto_adjust=True)
+            
+            if df.empty:
+                continue
+
             df = calculate_indicators(df)
-            # Ensure JSON serializable: convert index/dates to string and handle NaNs
             df = df.reset_index()
+            
+            # Ensure Date is string and handle NaNs
             df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
             df = df.replace([np.inf, -np.inf], np.nan).fillna(0)
-            result[ticker] = df.to_dict(orient="records")
-        else:
-            for ticker in input_data.tickers:
-                # Extract ticker-specific columns from MultiIndex
-                try:
-                    df = data.xs(ticker, axis=1, level=1).copy()
-                    df = calculate_indicators(df)
-                    df = df.reset_index()
-                    df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
-                    df = df.replace([np.inf, -np.inf], np.nan).fillna(0)
-                    result[ticker] = df.to_dict(orient="records")
-                except KeyError:
-                    print(f"Ticker {ticker} not found in download result")
-                    continue
+            
+            # Use ticker string as key
+            result[str(ticker)] = df.to_dict(orient="records")
         
+        if not result:
+            raise HTTPException(status_code=404, detail="No data found for given tickers")
+            
         return result
     except Exception as e:
         print(f"Error in /history: {e}")
