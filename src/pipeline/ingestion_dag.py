@@ -18,6 +18,7 @@ with DAG(
     description='Fetches, validates, and engineers features with granular DVC tracking',
     schedule_interval=timedelta(days=1),
     catchup=False,
+    max_active_runs=1,
 ) as dag:
 
     # 1. Ingestion
