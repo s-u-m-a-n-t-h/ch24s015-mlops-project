@@ -18,6 +18,8 @@ services:
     environment:
       - APP_NAME=PortfolioBackend
       - MLFLOW_TRACKING_URI=http://mlflow-server:5000
+    volumes:
+      - ./mlruns:/opt/mlflow
     networks:
       - app-network
 
