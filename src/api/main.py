@@ -67,6 +67,11 @@ class PredictionOutput(BaseModel):
 class PortfolioAllocationOutput(BaseModel):
     allocation: dict # e.g., {"AAPL": 0.4, "GOOG": 0.3, "MSFT": 0.3}
 
+class HistoryInput(BaseModel):
+    tickers: list[str]
+    period: str = "1y"
+    interval: str = "1d"
+
 # --- FastAPI App ---
 app = FastAPI()
 
@@ -113,6 +118,64 @@ async def predict(data: PredictionInput):
         print(f"Error during prediction: {e}") # Log the error server-side
         raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
 
+# --- Visualization Logic ---
+
+def calculate_indicators(df: pd.DataFrame):
+    """Calculates technical indicators for a single ticker dataframe."""
+    # RSI
+    delta = df['Adj Close'].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+    rs = gain / loss
+    df['RSI'] = 100 - (100 / (1 + rs))
+    
+    # MACD
+    exp1 = df['Adj Close'].ewm(span=12, adjust=False).mean()
+    exp2 = df['Adj Close'].ewm(span=26, adjust=False).mean()
+    df['MACD'] = exp1 - exp2
+    df['MACD_Signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
+    
+    # Bollinger Bands
+    df['SMA_20'] = df['Adj Close'].rolling(window=20).mean()
+    df['stddev'] = df['Adj Close'].rolling(window=20).std()
+    df['BB_Upper'] = df['SMA_20'] + (df['stddev'] * 2)
+    df['BB_Lower'] = df['SMA_20'] - (df['stddev'] * 2)
+    
+    # SMA 50
+    df['SMA_50'] = df['Adj Close'].rolling(window=50).mean()
+    
+    return df.dropna()
+
+@app.post("/history")
+async def get_history(input_data: HistoryInput):
+    """Returns historical data and indicators for visualization."""
+    try:
+        data = yf.download(input_data.tickers, period=input_data.period, 
+                           interval=input_data.interval, auto_adjust=True, proxy=None)
+        
+        if data.empty:
+            raise HTTPException(status_code=404, detail="No data found for given tickers")
+
+        result = {}
+        
+        # Handle single vs multi-ticker download formats
+        if len(input_data.tickers) == 1:
+            ticker = input_data.tickers[0]
+            df = data.copy()
+            df = calculate_indicators(df)
+            # Reset index to make Date a column for JSON serialization
+            result[ticker] = df.reset_index().to_dict(orient="records")
+        else:
+            for ticker in input_data.tickers:
+                # Extract ticker-specific columns from MultiIndex
+                df = data.xs(ticker, axis=1, level=1).copy()
+                df = calculate_indicators(df)
+                result[ticker] = df.reset_index().to_dict(orient="records")
+        
+        return result
+    except Exception as e:
+        print(f"Error in /history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # --- Portfolio Optimization Logic ---
 
