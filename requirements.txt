@@ -9,3 +9,5 @@ mlflow
 yfinance
 dvc[http]
 scipy
+plotly
+streamlit

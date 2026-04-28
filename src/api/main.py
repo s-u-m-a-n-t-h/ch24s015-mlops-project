@@ -67,6 +67,11 @@ class PredictionOutput(BaseModel):
 class PortfolioAllocationOutput(BaseModel):
     allocation: dict # e.g., {"AAPL": 0.4, "GOOG": 0.3, "MSFT": 0.3}
 
+class HistoryInput(BaseModel):
+    tickers: list[str]
+    period: str = "1y"
+    interval: str = "1d"
+
 # --- FastAPI App ---
 app = FastAPI()
 
@@ -113,6 +118,87 @@ async def predict(data: PredictionInput):
         print(f"Error during prediction: {e}") # Log the error server-side
         raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
 
+# --- Visualization Logic ---
+
+def calculate_indicators(df: pd.DataFrame):
+    """Calculates technical indicators for a single ticker dataframe."""
+    # Handle Adj Close vs Close naming from yfinance
+    close_col = 'Adj Close' if 'Adj Close' in df.columns else 'Close'
+    
+    # RSI
+    delta = df[close_col].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+    rs = gain / loss
+    df['RSI'] = 100 - (100 / (1 + rs))
+    
+    # MACD
+    exp1 = df[close_col].ewm(span=12, adjust=False).mean()
+    exp2 = df[close_col].ewm(span=26, adjust=False).mean()
+    df['MACD'] = exp1 - exp2
+    df['MACD_Signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
+    
+    # Bollinger Bands
+    df['SMA_20'] = df[close_col].rolling(window=20).mean()
+    df['stddev'] = df[close_col].rolling(window=20).std()
+    df['BB_Upper'] = df['SMA_20'] + (df['stddev'] * 2)
+    df['BB_Lower'] = df['SMA_20'] - (df['stddev'] * 2)
+    
+    # SMA 50
+    df['SMA_50'] = df[close_col].rolling(window=50).mean()
+    
+    # For visualization, ensure we have an 'Adj Close' column for the frontend
+    if 'Adj Close' not in df.columns:
+        df['Adj Close'] = df['Close']
+        
+    return df.dropna()
+
+@app.post("/history")
+async def get_history(input_data: HistoryInput):
+    """Returns historical data and indicators for visualization with strict JSON safety."""
+    try:
+        result = {}
+        for ticker_raw in input_data.tickers:
+            ticker = str(ticker_raw)
+            # Download
+            df = yf.download(ticker, period=input_data.period, 
+                             interval=input_data.interval, auto_adjust=True)
+            
+            if df.empty:
+                continue
+
+            # 1. Flatten MultiIndex columns if yfinance returned them
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+            
+            # 2. Calculate indicators
+            df = calculate_indicators(df)
+            
+            # 3. Final Sanitization
+            df = df.reset_index()
+            # Convert Date to ISO string
+            df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
+            # Force all numbers to standard float and handle NaNs/Infs
+            df = df.replace([np.inf, -np.inf], np.nan).fillna(0)
+            
+            # 4. Build clean records
+            records = []
+            for _, row in df.iterrows():
+                # Convert row to dict and force keys to strings
+                record = {str(k): v for k, v in row.to_dict().items()}
+                records.append(record)
+            
+            result[ticker] = records
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="No data found for given tickers")
+            
+        return result
+    except Exception as e:
+        import traceback
+        print(f"Error in /history: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 # --- Portfolio Optimization Logic ---
 
@@ -127,9 +213,18 @@ def get_historical_data_stats(tickers: list[str], period: str = "2y", interval: 
     # Assuming 252 trading days in a year
     num_trading_days = 252 
     try:
-        # Fetch data - Disable proxy and cache to avoid locking issues in Docker
+        # Fetch data - Disable cache to avoid locking issues in Docker
         # auto_adjust=True is important for dividends/splits
-        data = yf.download(tickers, period=period, interval=interval, auto_adjust=True, proxy=None)['Adj Close']
+        data = yf.download(tickers, period=period, interval=interval, auto_adjust=True)
+        
+        # Handle flattened vs MultiIndex columns
+        if len(tickers) == 1:
+            # Single ticker returns a simple DataFrame
+            pass # We'll handle this below
+        else:
+            # Multi-ticker returns MultiIndex, we only want the 'Close' (or 'Adj Close') level
+            close_col = 'Adj Close' if 'Adj Close' in data.columns.levels[0] else 'Close'
+            data = data[close_col]
         
         # Check if we got data for all tickers
         if data.empty:
