@@ -125,11 +125,26 @@ def get_historical_data_stats(tickers: list[str], period: str = "2y", interval: 
     - Annualized covariance matrix
     """
     try:
-        # Fetch data
-        data = yf.download(tickers, period=period, interval=interval, auto_adjust=True)['Adj Close']
+        # Fetch data - Disable proxy and cache to avoid locking issues in Docker
+        # auto_adjust=True is important for dividends/splits
+        data = yf.download(tickers, period=period, interval=interval, auto_adjust=True, proxy=None)['Adj Close']
+        
+        # Check if we got data for all tickers
         if data.empty:
             raise ValueError("No data fetched from yfinance.")
             
+        # Drop tickers that failed to download
+        data = data.dropna(axis=1, how='all')
+        
+        # If any ticker is missing, the optimization logic will fail later, 
+        # so we ensure the returned data contains all requested tickers.
+        missing_tickers = set(tickers) - set(data.columns)
+        if missing_tickers:
+            print(f"Warning: Missing data for tickers: {missing_tickers}")
+            # Instead of failing, we'll try to proceed with what we have 
+            # OR we can implement the fallback here.
+            raise ValueError(f"Missing data for tickers: {missing_tickers}")
+
         # Calculate daily returns
         returns = data.pct_change().dropna()
         
@@ -278,9 +293,11 @@ async def get_portfolio_allocation(portfolio_input: PortfolioInput):
         expected_returns, cov_matrix = get_historical_data_stats(OPTIMIZATION_TICKERS, period="2y", interval="1d")
         
         # Ensure all tickers are present in both returns and cov_matrix
-        if (not all(ticker in expected_returns.index for ticker in OPTIMIZATION_TICKERS) or 
+        available_tickers = list(expected_returns.index)
+        if (not all(ticker in available_tickers for ticker in OPTIMIZATION_TICKERS) or 
             not all(ticker in cov_matrix.columns for ticker in OPTIMIZATION_TICKERS)):
-            raise ValueError("Mismatch between tickers and calculated stats.")
+            missing = set(OPTIMIZATION_TICKERS) - set(available_tickers)
+            raise ValueError(f"Mismatch between tickers and calculated stats. Missing: {missing}")
 
         # Align expected_returns and cov_matrix to the OPTIMIZATION_TICKERS order for optimization
         expected_returns_ordered = expected_returns[OPTIMIZATION_TICKERS]
