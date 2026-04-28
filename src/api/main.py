@@ -122,28 +122,35 @@ async def predict(data: PredictionInput):
 
 def calculate_indicators(df: pd.DataFrame):
     """Calculates technical indicators for a single ticker dataframe."""
+    # Handle Adj Close vs Close naming from yfinance
+    close_col = 'Adj Close' if 'Adj Close' in df.columns else 'Close'
+    
     # RSI
-    delta = df['Adj Close'].diff()
+    delta = df[close_col].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
     rs = gain / loss
     df['RSI'] = 100 - (100 / (1 + rs))
     
     # MACD
-    exp1 = df['Adj Close'].ewm(span=12, adjust=False).mean()
-    exp2 = df['Adj Close'].ewm(span=26, adjust=False).mean()
+    exp1 = df[close_col].ewm(span=12, adjust=False).mean()
+    exp2 = df[close_col].ewm(span=26, adjust=False).mean()
     df['MACD'] = exp1 - exp2
     df['MACD_Signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
     
     # Bollinger Bands
-    df['SMA_20'] = df['Adj Close'].rolling(window=20).mean()
-    df['stddev'] = df['Adj Close'].rolling(window=20).std()
+    df['SMA_20'] = df[close_col].rolling(window=20).mean()
+    df['stddev'] = df[close_col].rolling(window=20).std()
     df['BB_Upper'] = df['SMA_20'] + (df['stddev'] * 2)
     df['BB_Lower'] = df['SMA_20'] - (df['stddev'] * 2)
     
     # SMA 50
-    df['SMA_50'] = df['Adj Close'].rolling(window=50).mean()
+    df['SMA_50'] = df[close_col].rolling(window=50).mean()
     
+    # For visualization, ensure we have an 'Adj Close' column for the frontend
+    if 'Adj Close' not in df.columns:
+        df['Adj Close'] = df['Close']
+        
     return df.dropna()
 
 @app.post("/history")
@@ -192,7 +199,16 @@ def get_historical_data_stats(tickers: list[str], period: str = "2y", interval: 
     try:
         # Fetch data - Disable cache to avoid locking issues in Docker
         # auto_adjust=True is important for dividends/splits
-        data = yf.download(tickers, period=period, interval=interval, auto_adjust=True)['Adj Close']
+        data = yf.download(tickers, period=period, interval=interval, auto_adjust=True)
+        
+        # Handle flattened vs MultiIndex columns
+        if len(tickers) == 1:
+            # Single ticker returns a simple DataFrame
+            pass # We'll handle this below
+        else:
+            # Multi-ticker returns MultiIndex, we only want the 'Close' (or 'Adj Close') level
+            close_col = 'Adj Close' if 'Adj Close' in data.columns.levels[0] else 'Close'
+            data = data[close_col]
         
         # Check if we got data for all tickers
         if data.empty:
