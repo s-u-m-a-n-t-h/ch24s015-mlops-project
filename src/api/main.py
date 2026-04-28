@@ -124,6 +124,8 @@ def get_historical_data_stats(tickers: list[str], period: str = "2y", interval: 
     - Annualized volatility
     - Annualized covariance matrix
     """
+    # Assuming 252 trading days in a year
+    num_trading_days = 252 
     try:
         # Fetch data - Disable proxy and cache to avoid locking issues in Docker
         # auto_adjust=True is important for dividends/splits
@@ -147,10 +149,6 @@ def get_historical_data_stats(tickers: list[str], period: str = "2y", interval: 
 
         # Calculate daily returns
         returns = data.pct_change().dropna()
-        
-        # Calculate annualized metrics
-        # Assuming 252 trading days in a year
-        num_trading_days = 252 
         
         expected_returns = returns.mean() * num_trading_days
         cov_matrix = returns.cov() * num_trading_days
