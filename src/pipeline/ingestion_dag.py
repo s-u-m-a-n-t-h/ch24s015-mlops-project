@@ -16,7 +16,7 @@ with DAG(
     'market_data_ingestion',
     default_args=default_args,
     description='Fetches, validates, and engineers features with granular DVC tracking',
-    schedule_interval=timedelta(days=1),
+    schedule_interval=timedelta(minutes=10),
     catchup=False,
     max_active_runs=1,
 ) as dag:

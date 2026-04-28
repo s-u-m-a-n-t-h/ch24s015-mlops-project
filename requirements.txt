@@ -11,3 +11,5 @@ dvc[http]
 scipy
 plotly
 streamlit
+psycopg2-binary
+sqlalchemy

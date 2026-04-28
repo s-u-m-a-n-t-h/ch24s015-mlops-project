@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from datetime import datetime, timedelta
 
-def fetch_market_data(tickers, period="2y", interval="1d"):
+def fetch_market_data(tickers, period="7d", interval="5m"):
     """
     Downloads historical data for a list of tickers.
     """

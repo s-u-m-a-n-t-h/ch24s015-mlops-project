@@ -7,6 +7,29 @@ from scipy.optimize import minimize
 import os
 import mlflow
 
+from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+import datetime
+
+# --- Database Configuration ---
+POSTGRES_URL = os.getenv("DATABASE_URL", "postgresql://airflow:airflow@airflow-db/airflow")
+engine = create_engine(POSTGRES_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+class LivePrediction(Base):
+    __tablename__ = "live_predictions"
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    ticker = Column(String)
+    prediction = Column(Integer)
+    rsi = Column(Float)
+    actual_return = Column(Float, nullable=True) # To be filled by monitor
+
+# Create the table
+Base.metadata.create_all(bind=engine)
+
 # --- MLflow Configuration ---
 # Ensure MLflow tracking URI and artifact root are correctly set from environment variables
 # These should be configured in docker-compose.yml for the backend service.
@@ -50,6 +73,7 @@ except Exception as e:
 
 # --- Pydantic Models ---
 class PredictionInput(BaseModel):
+    ticker: str = "AAPL"
     RSI: float
     MACD: float
     MACD_Signal: float
@@ -112,6 +136,20 @@ async def predict(data: PredictionInput):
         
         # Ensure the output is an integer as per PredictionOutput model
         predicted_value = int(prediction_result[0]) if isinstance(prediction_result, (list, np.ndarray)) and len(prediction_result) > 0 else int(prediction_result)
+
+        # Log to Database
+        try:
+            db = SessionLocal()
+            log_entry = LivePrediction(
+                ticker=data.ticker,
+                prediction=predicted_value,
+                rsi=data.RSI
+            )
+            db.add(log_entry)
+            db.commit()
+            db.close()
+        except Exception as db_err:
+            print(f"Failed to log prediction to DB: {db_err}")
 
         return PredictionOutput(prediction=predicted_value)
     except Exception as e:
