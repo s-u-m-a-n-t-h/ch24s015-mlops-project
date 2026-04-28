@@ -151,7 +151,7 @@ async def get_history(input_data: HistoryInput):
     """Returns historical data and indicators for visualization."""
     try:
         data = yf.download(input_data.tickers, period=input_data.period, 
-                           interval=input_data.interval, auto_adjust=True, proxy=None)
+                           interval=input_data.interval, auto_adjust=True)
         
         if data.empty:
             raise HTTPException(status_code=404, detail="No data found for given tickers")
@@ -190,9 +190,9 @@ def get_historical_data_stats(tickers: list[str], period: str = "2y", interval: 
     # Assuming 252 trading days in a year
     num_trading_days = 252 
     try:
-        # Fetch data - Disable proxy and cache to avoid locking issues in Docker
+        # Fetch data - Disable cache to avoid locking issues in Docker
         # auto_adjust=True is important for dividends/splits
-        data = yf.download(tickers, period=period, interval=interval, auto_adjust=True, proxy=None)['Adj Close']
+        data = yf.download(tickers, period=period, interval=interval, auto_adjust=True)['Adj Close']
         
         # Check if we got data for all tickers
         if data.empty:
