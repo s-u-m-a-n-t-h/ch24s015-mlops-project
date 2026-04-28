@@ -12,3 +12,4 @@ mlflow.db
 postgres_data/
 .codex/
 .codex/
+!project_report.docx
