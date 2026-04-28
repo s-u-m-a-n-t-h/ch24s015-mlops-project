@@ -170,14 +170,24 @@ async def get_history(input_data: HistoryInput):
             ticker = input_data.tickers[0]
             df = data.copy()
             df = calculate_indicators(df)
-            # Reset index to make Date a column for JSON serialization
-            result[ticker] = df.reset_index().to_dict(orient="records")
+            # Ensure JSON serializable: convert index/dates to string and handle NaNs
+            df = df.reset_index()
+            df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
+            df = df.replace([np.inf, -np.inf], np.nan).fillna(0)
+            result[ticker] = df.to_dict(orient="records")
         else:
             for ticker in input_data.tickers:
                 # Extract ticker-specific columns from MultiIndex
-                df = data.xs(ticker, axis=1, level=1).copy()
-                df = calculate_indicators(df)
-                result[ticker] = df.reset_index().to_dict(orient="records")
+                try:
+                    df = data.xs(ticker, axis=1, level=1).copy()
+                    df = calculate_indicators(df)
+                    df = df.reset_index()
+                    df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
+                    df = df.replace([np.inf, -np.inf], np.nan).fillna(0)
+                    result[ticker] = df.to_dict(orient="records")
+                except KeyError:
+                    print(f"Ticker {ticker} not found in download result")
+                    continue
         
         return result
     except Exception as e:
