@@ -278,8 +278,8 @@ async def get_portfolio_allocation(portfolio_input: PortfolioInput):
         expected_returns, cov_matrix = get_historical_data_stats(OPTIMIZATION_TICKERS, period="2y", interval="1d")
         
         # Ensure all tickers are present in both returns and cov_matrix
-        if not all(ticker in expected_returns.index for ticker in OPTIMIZATION_TICKERS) or 
-           not all(ticker in cov_matrix.columns for ticker in OPTIMIZATION_TICKERS):
+        if (not all(ticker in expected_returns.index for ticker in OPTIMIZATION_TICKERS) or 
+            not all(ticker in cov_matrix.columns for ticker in OPTIMIZATION_TICKERS)):
             raise ValueError("Mismatch between tickers and calculated stats.")
 
         # Align expected_returns and cov_matrix to the OPTIMIZATION_TICKERS order for optimization
