@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.git/
+.dvc/
+data/
+mlruns/
+postgres_data/
+*.swp
+*.docx
+gh
+extract_docx.py

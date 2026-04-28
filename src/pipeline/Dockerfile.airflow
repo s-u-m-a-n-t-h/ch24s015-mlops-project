@@ -5,4 +5,8 @@ RUN apt-get update && apt-get install -y git && apt-get clean
 
 USER airflow
 RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir dvc[http] yfinance pandas
+
+# Use BuildKit cache mount to speed up subsequent builds
+COPY src/pipeline/requirements.txt /tmp/requirements.txt
+RUN --mount=type=cache,target=/home/airflow/.cache/pip \
+    pip install --user --upgrade -r /tmp/requirements.txt
